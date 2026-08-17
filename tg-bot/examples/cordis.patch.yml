@@ -1,0 +1,23 @@
+# ── dsh-tg-bot: Telegram 桥接挂载示例（追加到 cordis.patch.yml）────────────
+# 面板: /tg-bot (受 web-auth 守卫保护); Telegram 指令: /verify /status /bind 等
+# token 从 tokenFile 读取; 代理默认 http://127.0.0.1:7897 (可改); 验证复用 web-auth TOTP secret
+# 说明: 把 tg-bot/ 目录放到 profile 目录下(与 auth-plugin 同级)，下面的路径按你的实际环境调整
+- insert:
+    - id: tg-bot
+      name: './tg-bot/index.js?v=1'
+      config:
+        tokenFile: '~/.dsh/tg-bot/token.txt'          # 你的 bot token（或用 env DSH_TG_BOT_TOKEN）
+        stateDir: '~/.dsh/tg-bot'
+        webAuthStateFile: '~/.dsh/auth/state.json'    # shared 模式复用 web-auth 的 TOTP secret
+        verifySecretMode: 'shared'                    # 'shared' | 'dedicated'
+        maxFailures: 5
+        lockoutMs: 7200000
+        proxy: 'http://127.0.0.1:7897'                # 空字符串 '' = 直连
+        pollTimeoutSec: 30
+        autoReport: true
+        reportTurnStart: false
+        echoReplies: true
+        echoMaxChars: 1500
+        interruptMode: 'steer'                        # 'steer' 软中断 | 'cancel' 硬中断
+        panelPath: '/tg-bot'
+        # wakeFile: '<你的 wake.json 绝对路径>'        # 通用唤醒通道（可选）

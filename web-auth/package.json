@@ -1,0 +1,8 @@
+{
+  "name": "dsh-web-auth",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TOTP 2FA + cookie token authentication for the DeepSeek Harness web surface",
+  "main": "index.js"
+}

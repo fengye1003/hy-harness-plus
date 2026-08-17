@@ -1,0 +1,8 @@
+{
+  "name": "dsh-tg-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Telegram bridge for the DeepSeek Harness web profile: bidirectional conversation, progress reporting, TOTP whitelist verification, web panel toggle.",
+  "license": "MIT"
+}

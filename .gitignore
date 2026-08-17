@@ -1,0 +1,15 @@
+# deps / logs
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# runtime data (never publish)
+wake/tasks.json
+wake/wake.json
+*.corrupt-*
+
+# secrets
+*.secret
+totp-secret.txt
+token.txt
