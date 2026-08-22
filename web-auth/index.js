@@ -493,7 +493,7 @@ function tokensPage(state) {
 }
 
 // ── plugin ────────────────────────────────────────────────────────────────
-export function apply(ctx, config = {}) {
+function applyImpl(ctx, config = {}) {
   const cfg = {
     passkeyHash: config.passkeyHash ?? (config.passkey ? sha256(config.passkey) : null),
     tokenTtlDays: Number(config.tokenTtlDays) || 30,
@@ -506,7 +506,12 @@ export function apply(ctx, config = {}) {
   // Register the index.html UUID polyfill FIRST: it is the LAN-HTTP fix, and
   // every webserver build (with or without registerGuard) has tapIndex, so
   // this applies even on a process that predates the guard patch.
-  ctx.webServer.tapIndex(injectUuidPolyfill);
+  // Defensive: probe the API; never let a harness-upgrade API change kill boot.
+  if (typeof ctx.webServer.tapIndex === "function") {
+    ctx.webServer.tapIndex(injectUuidPolyfill);
+  } else {
+    ctx.logger.warn("web-auth: ctx.webServer.tapIndex missing — UUID polyfill skipped (degraded)");
+  }
 
   const state = new AuthState(cfg.stateFile).load();
   state.ttlMs = cfg.tokenTtlDays * 86_400_000;
@@ -523,6 +528,10 @@ export function apply(ctx, config = {}) {
   }
 
   // ── guard: everything except the login endpoints requires a valid token ──
+  // Defensive: registerGuard is provided by our webserver patch. If a harness
+  // upgrade wiped the patch (registerGuard missing), we degrade to route-only
+  // mode with a loud warning instead of crashing the plugin tree — the app
+  // still boots, and re-running apply-webserver-patch.mjs restores the guard.
   const guard = {
     name: "web-auth",
     check: async (req, res, rawPath) => {
@@ -547,7 +556,14 @@ export function apply(ctx, config = {}) {
       return false;
     },
   };
-  ctx.webServer.registerGuard(guard);
+  if (typeof ctx.webServer.registerGuard === "function") {
+    ctx.webServer.registerGuard(guard);
+  } else {
+    ctx.logger.warn(
+      "web-auth: ctx.webServer.registerGuard missing (harness upgrade likely wiped the webserver patch) — " +
+      "running DEGRADED: routes registered but no request guard; re-run apply-webserver-patch.mjs to restore"
+    );
+  }
 
   // ── routes ──────────────────────────────────────────────────────────────
   const routes = {
@@ -640,7 +656,13 @@ export function apply(ctx, config = {}) {
   };
 
   for (const [path, handler] of Object.entries(routes)) {
-    ctx.effect(() => ctx.webServer.register({ kind: "exact", path, handler }), `web-auth: ${path}`);
+    // Defensive: `register` is part of every webserver build, but guard the
+    // registration so a single route failure never takes down the plugin tree.
+    try {
+      ctx.effect(() => ctx.webServer.register({ kind: "exact", path, handler }), `web-auth: ${path}`);
+    } catch (err) {
+      ctx.logger.warn(`web-auth: failed to register route ${path}: ${err?.message ?? err}`);
+    }
   }
 
   // Periodic cleanup of expired tokens and rate-limit buckets.
@@ -650,4 +672,22 @@ export function apply(ctx, config = {}) {
   }, CLEANUP_INTERVAL_MS);
   if (typeof sweeper.unref === "function") sweeper.unref();
   ctx.on("dispose", () => clearInterval(sweeper));
+}
+
+// ── defensive top-level wrapper ────────────────────────────────────────────
+// The plugin tree fails hard when a plugin's apply() throws. Harness upgrades
+// have historically removed webserver APIs (registerGuard) and crashed the
+// whole boot. Wrap apply so ANY unexpected API change degrades to a logged
+// warning instead of a fatal plugin-tree error — the app still boots, and the
+// log pinpoints what to re-patch.
+export function apply(ctx, config = {}) {
+  try {
+    return applyImpl(ctx, config);
+  } catch (err) {
+    try {
+      ctx.logger.error(`web-auth: apply failed (degraded, boot continues): ${err?.stack ?? err}`);
+    } catch {
+      console.error("web-auth: apply failed:", err);
+    }
+  }
 }

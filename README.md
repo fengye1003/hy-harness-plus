@@ -1,61 +1,44 @@
-# dsh-harness-plugins · DeepSeek Harness 插件集
+# dsh-harness-plugins 路 DeepSeek Harness 鎻掍欢闆?
+> 涓讳綔鑰咃細**鏄熸緞锛圚oshino Sumi锛?* 路 **HYrecovery 鐨?AI 灏忓姪鎵?* 路 2026-08 路 闆朵緷璧栵紙浠?Node 鍐呯疆妯″潡锛?> 浠撳簱鍦板潃锛?*https://github.com/fengye1003/hy-harness-plus**
 
-> 主作者：**星澄（Hoshino Sumi）** · **HYrecovery 的 AI 小助手** · 2026-08 · 零依赖（仅 Node 内置模块）
+缁?[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 鏈湴 AI 宸ヤ綔鍙拌ˉ榻愪笁浠躲€屾棩甯稿垰闇€銆嶇殑闆朵緷璧栨彃浠讹細
 
-给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 本地 AI 工作台补齐三件「日常刚需」的零依赖插件：
-
-| 插件 | 目录 | 一句话 |
+| 鎻掍欢 | 鐩綍 | 涓€鍙ヨ瘽 |
 |---|---|---|
-| 🔐 **dsh-web-auth** | [`web-auth/`](web-auth/) | TOTP 2FA + 30 天 Cookie Token 认证，把本地 Web 面板安全地暴露到局域网/内网 |
-| 🤖 **dsh-tg-bot** | [`tg-bot/`](tg-bot/) | Telegram 桥接：让 Telegram 成为你的第二对话入口（双向对话 + 进度汇报 + TOTP 白名单） |
-| ⏰ **wake** | [`wake/`](wake/) | 通用事件唤醒通道：任何脚本写一份 `wake.json` 就能唤醒 agent 执行并汇报 |
+| 馃攼 **dsh-web-auth** | [`web-auth/`](web-auth/) | TOTP 2FA + 30 澶?Cookie Token 璁よ瘉锛屾妸鏈湴 Web 闈㈡澘瀹夊叏鍦版毚闇插埌灞€鍩熺綉/鍐呯綉 |
+| 馃 **dsh-tg-bot** | [`tg-bot/`](tg-bot/) | Telegram 妗ユ帴锛氳 Telegram 鎴愪负浣犵殑绗簩瀵硅瘽鍏ュ彛锛堝弻鍚戝璇?+ 杩涘害姹囨姤 + TOTP 鐧藉悕鍗曪級 |
+| 鈴?**wake** | [`wake/`](wake/) | 閫氱敤浜嬩欢鍞ら啋閫氶亾锛氫换浣曡剼鏈啓涓€浠?`wake.json` 灏辫兘鍞ら啋 agent 鎵ц骞舵眹鎶?|
 
-三个插件互相配合形成一个完整的「本地 AI 工作台可远程使用」闭环：
+涓変釜鎻掍欢浜掔浉閰嶅悎褰㈡垚涓€涓畬鏁寸殑銆屾湰鍦?AI 宸ヤ綔鍙板彲杩滅▼浣跨敤銆嶉棴鐜細
 
 ```
-浏览器(局域网/Tailscale) ──► DSH Web 面板 ──┬─► dsh-web-auth  认证守卫（TOTP 2FA）
-                                            │
-Telegram ──────────────► dsh-tg-bot ────────┤   双向对话 / 进度汇报 / tg_send 工具
-                                            │
-定时器 / Python 下载器 / 监控 ──► wake.json ─┘   （wake 通道 → dsh-tg-bot 注入会话）
-```
+娴忚鍣?灞€鍩熺綉/Tailscale) 鈹€鈹€鈻?DSH Web 闈㈡澘 鈹€鈹€鈹攢鈻?dsh-web-auth  璁よ瘉瀹堝崼锛圱OTP 2FA锛?                                            鈹?Telegram 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈻?dsh-tg-bot 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹?  鍙屽悜瀵硅瘽 / 杩涘害姹囨姤 / tg_send 宸ュ叿
+                                            鈹?瀹氭椂鍣?/ Python 涓嬭浇鍣?/ 鐩戞帶 鈹€鈹€鈻?wake.json 鈹€鈹?  锛坵ake 閫氶亾 鈫?dsh-tg-bot 娉ㄥ叆浼氳瘽锛?```
 
-## 作者
+## 浣滆€?
+**鏄熸緞锛圚oshino Sumi锛?* 鈥斺€?HYrecovery 鐨?AI 灏忓姪鎵嬶紝杩愯浜?DeepSeek Harness 涔嬩腑銆?
+鏈粨搴撶殑涓変釜鎻掍欢閮藉嚭鑷槦婢勪箣鎵嬶細浠庛€岀粰鏈湴 AI 宸ヤ綔鍙板姞涓€閬撻攣銆嶇殑 dsh-web-auth 寮€濮嬶紝鍒般€岃 AI 闅忔椂鑳借鎵惧埌銆嶇殑 dsh-tg-bot锛屽啀鍒般€岃浠讳綍鑴氭湰閮借兘鍙啋 AI銆嶇殑 wake鈥斺€旈兘鏄湪鐪熷疄鐜閲屼竴姝ユ韪╁潙銆佷慨濂姐€侀獙璇佽繃鐨勫疄璺典骇鐗┿€?
+## 璁捐鍘熷垯
 
-**星澄（Hoshino Sumi）** —— HYrecovery 的 AI 小助手，运行于 DeepSeek Harness 之中。
-
-本仓库的三个插件都出自星澄之手：从「给本地 AI 工作台加一道锁」的 dsh-web-auth 开始，到「让 AI 随时能被找到」的 dsh-tg-bot，再到「让任何脚本都能叫醒 AI」的 wake——都是在真实环境里一步步踩坑、修好、验证过的实践产物。
-
-## 设计原则
-
-- **零依赖**：全部只用 `node:` 内置模块，`npm install` 都不需要，复制即用。
-- **不阻塞**：`apply` 不碰网络，轮询/汇报全异步，Telegram 或代理不可达只改状态重试，harness 照常工作。
-- **安全优先**：验证路径纯代码（RFC 6238 TOTP），绝不经过 LLM——没有提示词注入面；凭据全部从配置/环境变量/状态文件读取，代码里零硬编码。
-
+- **闆朵緷璧?*锛氬叏閮ㄥ彧鐢?`node:` 鍐呯疆妯″潡锛宍npm install` 閮戒笉闇€瑕侊紝澶嶅埗鍗崇敤銆?- **涓嶉樆濉?*锛歚apply` 涓嶇缃戠粶锛岃疆璇?姹囨姤鍏ㄥ紓姝ワ紝Telegram 鎴栦唬鐞嗕笉鍙揪鍙敼鐘舵€侀噸璇曪紝harness 鐓у父宸ヤ綔銆?- **瀹夊叏浼樺厛**锛氶獙璇佽矾寰勭函浠ｇ爜锛圧FC 6238 TOTP锛夛紝缁濅笉缁忚繃 LLM鈥斺€旀病鏈夋彁绀鸿瘝娉ㄥ叆闈紱鍑嵁鍏ㄩ儴浠庨厤缃?鐜鍙橀噺/鐘舵€佹枃浠惰鍙栵紝浠ｇ爜閲岄浂纭紪鐮併€?
 ---
 
-## 部署教程（从零到全链路）
+## 閮ㄧ讲鏁欑▼锛堜粠闆跺埌鍏ㄩ摼璺級
 
-> 目标环境：Windows / macOS / Linux 上运行 DeepSeek Harness **web profile**（`~/.dsh/profiles/web/`）。
-> 全程约 15 分钟，不需要安装任何 npm 包。
+> 鐩爣鐜锛歐indows / macOS / Linux 涓婅繍琛?DeepSeek Harness **web profile**锛坄~/.dsh/profiles/web/`锛夈€?> 鍏ㄧ▼绾?15 鍒嗛挓锛屼笉闇€瑕佸畨瑁呬换浣?npm 鍖呫€?
+### 绗?0 姝ワ細纭鍓嶇疆鏉′欢
 
-### 第 0 步：确认前置条件
+1. DeepSeek Harness 姝ｅ父杩愯锛學eb 闈㈡澘鍙闂紙`http://127.0.0.1:8088` 鎴栬嚜瀹氫箟绔彛锛夈€?2. 鎵惧埌浣犵殑 profile 鐩綍锛歚~/.dsh/profiles/web/`锛岄噷闈㈡湁 `cordis.patch.yml` 鍜?`node_modules/`銆?3. **dsh-web-auth 闇€瑕?webserver 鐨?`registerGuard` / `tapIndex` 閽╁瓙**鈥斺€旇嫢浣犵殑 harness 鐗堟湰杩樻病鏈夛紝闇€瑕佸厛鎵撲竴涓皬琛ヤ竵锛堜竴閿剼鏈 [`web-auth/apply-webserver-patch.mjs`](web-auth/apply-webserver-patch.mjs)锛岃鏄庤 [`web-auth/README.md`](web-auth/README.md)锛夈€?
+### 绗?1 姝ワ細閮ㄧ讲 dsh-web-auth锛堣璇佸畧鍗級
 
-1. DeepSeek Harness 正常运行，Web 面板可访问（`http://127.0.0.1:8088` 或自定义端口）。
-2. 找到你的 profile 目录：`~/.dsh/profiles/web/`，里面有 `cordis.patch.yml` 和 `node_modules/`。
-3. **dsh-web-auth 需要 webserver 的 `registerGuard` / `tapIndex` 钩子**——若你的 harness 版本还没有，需要先打一个小补丁（见 [`web-auth/README.md`](web-auth/README.md) 的说明）。
-
-### 第 1 步：部署 dsh-web-auth（认证守卫）
-
-1. 把 `web-auth/` 目录复制到 profile 目录，得到 `~/.dsh/profiles/web/auth-plugin/`。
-2. 编辑 `cordis.patch.yml`，追加挂载：
+1. 鎶?`web-auth/` 鐩綍澶嶅埗鍒?profile 鐩綍锛屽緱鍒?`~/.dsh/profiles/web/auth-plugin/`銆?2. 缂栬緫 `cordis.patch.yml`锛岃拷鍔犳寕杞斤細
 
 ```yaml
 - insert:
     - id: web-auth
-      name: './auth-plugin/index.js?v=1'
+      name: './auth-plugin/index.js?v=3'
       config:
-        passkey: '<你的应急口令，首次配置后请牢记>'   # 可选；不配则 bypass 路由禁用
+        passkey: '<浣犵殑搴旀€ュ彛浠わ紝棣栨閰嶇疆鍚庤鐗㈣>'   # 鍙€夛紱涓嶉厤鍒?bypass 璺敱绂佺敤
         tokenTtlDays: 30
         stateFile: '~/.dsh/auth/state.json'
         backupDir: '~/.dsh/auth/backup'
@@ -63,65 +46,41 @@ Telegram ──────────────► dsh-tg-bot ────�
         label: 'DeepSeek Harness'
 ```
 
-3. 热重载（把 `?v=1` 的版本号 +1）或重启 harness。
-4. 首次启动自动生成 TOTP 密钥：日志打印 `otpauth://totp/...` URI，同时备份到 `backupDir`（`totp-secret.txt`）。用身份验证器 App（Google Authenticator / 1Password / Aegis……）扫码添加。
-5. 浏览器访问面板 → 输入 6 位动态码 → 完成。访问 `/auth/tokens` 可管理登录 Token。
+3. 鐑噸杞斤紙鎶?`?v=1` 鐨勭増鏈彿 +1锛夋垨閲嶅惎 harness銆?4. 棣栨鍚姩鑷姩鐢熸垚 TOTP 瀵嗛挜锛氭棩蹇楁墦鍗?`otpauth://totp/...` URI锛屽悓鏃跺浠藉埌 `backupDir`锛坄totp-secret.txt`锛夈€傜敤韬唤楠岃瘉鍣?App锛圙oogle Authenticator / 1Password / Aegis鈥︹€︼級鎵爜娣诲姞銆?5. 娴忚鍣ㄨ闂潰鏉?鈫?杈撳叆 6 浣嶅姩鎬佺爜 鈫?瀹屾垚銆傝闂?`/auth/tokens` 鍙鐞嗙櫥褰?Token銆?
+鉁?**楠屾敹**锛氭棤 cookie 璁块棶闈㈡澘琚噸瀹氬悜鍒?`/auth/login`锛涜緭閿欓獙璇佺爜琚嫆缁濓紱杈撳叆姝ｇ‘鐮佸悗杩涘叆銆?
+### 绗?2 姝ワ細閮ㄧ讲 dsh-tg-bot锛圱elegram 妗ユ帴锛屽彲閫変絾鎺ㄨ崘锛?
+1. 鎵?[@BotFather](https://t.me/BotFather) 鍒涘缓 Bot锛屾嬁鍒?token锛堝舰濡?`123456789:AAF...`锛夈€?2. 鎶?`tg-bot/` 鐩綍澶嶅埗鍒?profile 鐩綍锛屽緱鍒?`~/.dsh/profiles/web/tg-bot/`銆?3. 鎶?token 鍐欏叆 `~/.dsh/tg-bot/token.txt`锛堟垨鐢ㄩ厤缃」 `token` / 鐜鍙橀噺 `DSH_TG_BOT_TOKEN`锛夈€?4. 鍦?`cordis.patch.yml` 杩藉姞鎸傝浇锛堢ず渚嬭 [`tg-bot/examples/cordis.patch.yml`](tg-bot/examples/cordis.patch.yml)锛夛紝鐑噸杞芥垨閲嶅惎銆?5. Telegram 绉佽亰浣犵殑 bot锛歚/start` 鈫?鐢ㄨ韩浠介獙璇佸櫒 App锛堜笌绗?1 姝ュ悓涓€涓級鍙?`/verify <6浣嶇爜>` 鈫?鐧藉悕鍗曡惤鐩橈紝涔嬪悗鍏嶉獙璇併€?
+鉁?**楠屾敹**锛歍elegram 閲岀洿鎺ュ彂娑堟伅锛宎gent 鍥炲悎缁撴潫鑷姩鍥炰紶鍥炲锛沗/status` 鏄剧ず妗ユ帴涓庤繛鎺ョ姸鎬併€?
+> 鏃犲叕缃?IP 鐨勬満鍣ㄩ粯璁よ蛋鏈湴娣峰悎浠ｇ悊 `http://127.0.0.1:7897` 璁块棶 Telegram API锛坄proxy` 閰嶇疆椤瑰彲鏀癸紝绌哄瓧绗︿覆 = 鐩磋繛锛夈€?
+### 绗?3 姝ワ細閮ㄧ讲 wake锛堥€氱敤浜嬩欢鍞ら啋锛屽彲閫夛級
 
-✅ **验收**：无 cookie 访问面板被重定向到 `/auth/login`；输错验证码被拒绝；输入正确码后进入。
-
-### 第 2 步：部署 dsh-tg-bot（Telegram 桥接，可选但推荐）
-
-1. 找 [@BotFather](https://t.me/BotFather) 创建 Bot，拿到 token（形如 `123456789:AAF...`）。
-2. 把 `tg-bot/` 目录复制到 profile 目录，得到 `~/.dsh/profiles/web/tg-bot/`。
-3. 把 token 写入 `~/.dsh/tg-bot/token.txt`（或用配置项 `token` / 环境变量 `DSH_TG_BOT_TOKEN`）。
-4. 在 `cordis.patch.yml` 追加挂载（示例见 [`tg-bot/examples/cordis.patch.yml`](tg-bot/examples/cordis.patch.yml)），热重载或重启。
-5. Telegram 私聊你的 bot：`/start` → 用身份验证器 App（与第 1 步同一个）发 `/verify <6位码>` → 白名单落盘，之后免验证。
-
-✅ **验收**：Telegram 里直接发消息，agent 回合结束自动回传回复；`/status` 显示桥接与连接状态。
-
-> 无公网 IP 的机器默认走本地混合代理 `http://127.0.0.1:7897` 访问 Telegram API（`proxy` 配置项可改，空字符串 = 直连）。
-
-### 第 3 步：部署 wake（通用事件唤醒，可选）
-
-1. 把 `wake/` 目录复制到任何方便的位置（脚本可写即可），例如 `~/wake/`。
-2. 在 `cordis.patch.yml` 的 `tg-bot` 配置块里加一行，指向 wake.json：
-
+1. 鎶?`wake/` 鐩綍澶嶅埗鍒颁换浣曟柟渚跨殑浣嶇疆锛堣剼鏈彲鍐欏嵆鍙級锛屼緥濡?`~/wake/`銆?2. 鍦?`cordis.patch.yml` 鐨?`tg-bot` 閰嶇疆鍧楅噷鍔犱竴琛岋紝鎸囧悜 wake.json锛?
 ```yaml
-        wakeFile: 'C:/path/to/wake/wake.json'   # 绝对路径；不配则默认在 stateDir 下
-```
+        wakeFile: 'C:/path/to/wake/wake.json'   # 缁濆璺緞锛涗笉閰嶅垯榛樿鍦?stateDir 涓?```
 
-3. 测试：`node scheduler.mjs add "3h" "提醒我喝水" --open-terminal` → 到点后 agent 被唤醒并通过 TG 汇报。
-4. （Windows）注册每分钟检查的计划任务，见 [`wake/README.md`](wake/README.md) 第四节。
+3. 娴嬭瘯锛歚node scheduler.mjs add "3h" "鎻愰啋鎴戝枬姘? --open-terminal` 鈫?鍒扮偣鍚?agent 琚敜閱掑苟閫氳繃 TG 姹囨姤銆?4. 锛圵indows锛夋敞鍐屾瘡鍒嗛挓妫€鏌ョ殑璁″垝浠诲姟锛岃 [`wake/README.md`](wake/README.md) 绗洓鑺傘€?
+鉁?**楠屾敹**锛歚node wake-util.mjs status` 鑳界湅鍒版湭娑堣垂/宸叉秷璐圭殑鍞ら啋淇″彿锛涘埌鐐规彁閱掑埌杈?Telegram銆?
+### 甯歌闂
 
-✅ **验收**：`node wake-util.mjs status` 能看到未消费/已消费的唤醒信号；到点提醒到达 Telegram。
-
-### 常见问题
-
-| 现象 | 原因与解法 |
+| 鐜拌薄 | 鍘熷洜涓庤В娉?|
 |---|---|
-| 插件没生效 | `cordis.patch.yml` 挂载后未热重载/重启；`?v=N` 版本号没 +1 |
-| Telegram 一直 401 | bot token 错误 → 检查 `token.txt` / 配置 |
-| getUpdates 报 409 | 有多个轮询实例（热重载残留）→ 重启 harness；插件自带文件级轮询锁可自愈 |
-| 局域网 HTTP 访问页面白屏 | 老版本 harness 的 `crypto.randomUUID()` 在非 HTTPS 下崩溃 → 更新到含 UUID polyfill 的 web-auth 版本 |
-| 唤醒没到 | 无绑定会话时不会注入；检查 harness 是否运行、`wakeFile` 路径是否正确 |
+| 鎻掍欢娌＄敓鏁?| `cordis.patch.yml` 鎸傝浇鍚庢湭鐑噸杞?閲嶅惎锛沗?v=N` 鐗堟湰鍙锋病 +1 |
+| 鎻掍欢闄嶇骇鍛婅锛坄registerGuard missing`锛墊 harness 鍗囩骇鍐叉帀浜?webserver 琛ヤ竵 鈫?璺?`node web-auth/apply-webserver-patch.mjs --apply` 閲嶆墦锛岄噸鍚?|
+| Telegram 涓€鐩?401 | bot token 閿欒 鈫?妫€鏌?`token.txt` / 閰嶇疆 |
+| getUpdates 鎶?409 | 鏈夊涓疆璇㈠疄渚嬶紙鐑噸杞芥畫鐣欙級鈫?閲嶅惎 harness锛涙彃浠惰嚜甯︽枃浠剁骇杞閿佸彲鑷剤 |
+| 灞€鍩熺綉 HTTP 璁块棶椤甸潰鐧藉睆 | 鑰佺増鏈?harness 鐨?`crypto.randomUUID()` 鍦ㄩ潪 HTTPS 涓嬪穿婧?鈫?鏇存柊鍒板惈 UUID polyfill 鐨?web-auth 鐗堟湰 |
+| 鍞ら啋娌″埌 | 鏃犵粦瀹氫細璇濇椂涓嶄細娉ㄥ叆锛涙鏌?harness 鏄惁杩愯銆乣wakeFile` 璺緞鏄惁姝ｇ‘ |
 
+### 鍗囩骇缁存姢锛堥噸瑕侊級
+
+- **DSH 鍗囩骇锛坣px 閲嶈锛変細瑕嗙洊 npm 缂撳瓨閲岀殑 webserver 琛ヤ竵**鈥斺€擿registerGuard` 閽╁瓙闅忎箣涓㈠け銆倃eb-auth 鎻掍欢鏄?*闃插尽鎬у姞杞?*鐨勶細閽╁瓙缂哄け鍙檷绾у憡璀︺€乭arness 鐓у父鍚姩锛堜笉浼氬儚鏃х増閭ｆ牱 fatal锛夛紝浣嗚璇佷笉鐢熸晥銆?- 鎭㈠锛歚node web-auth/apply-webserver-patch.mjs --apply`锛堝箓绛夛紝鑷姩瀹氫綅 npm 缂撳瓨涓?profile 涓ゅ瀹夎浣嶇疆骞朵繚鎸?hash 涓€鑷达級锛岀劧鍚?*閲嶅惎 harness**銆?- 2026-08-18 鏇惧洜鍗囩骇鍐叉帀琛ヤ竵瀵艰嚧鎻掍欢鏍?fatal銆乭arness 鏃犳硶鍚姩锛泇3 闃插尽鎬у姞杞?+ 琛ヤ竵鑴氭湰灏辨槸涓轰簡璁╄繖绫诲崌绾с€屽彧闄嶇骇銆佷笉姝绘満銆佷竴閿仮澶嶃€嶃€?
 ---
 
-## 兼容性
+## 鍏煎鎬?
+- DeepSeek Harness 鐨?**web profile**锛坄~/.dsh/profiles/web/`锛夛紝閫氳繃 `cordis.patch.yml` 鎸傝浇銆?- dsh-web-auth 闇€瑕?webserver 鐨?`registerGuard` / `tapIndex` 閽╁瓙锛坄apply-webserver-patch.mjs` 涓€閿墦琛ヤ竵锛涘吋瀹?0.1.0-rc.7 ~ 0.1.1-rc.2锛寃ebserver 鍦?0.1.1 璧蜂綅浜?`dsh-host-webserver` 鍖咃級銆?- Windows / macOS / Linux 鍧囧彲鐢紙wake 鐨勩€屾墦寮€缁堢銆嶅姩浣滀负 Windows 浼樺厛瀹炵幇锛屽叾浣欒法骞冲彴锛夈€?
+## 瀹夊叏璇存槑
 
-- DeepSeek Harness 的 **web profile**（`~/.dsh/profiles/web/`），通过 `cordis.patch.yml` 挂载。
-- dsh-web-auth 需要 webserver 的 `registerGuard` / `tapIndex` 钩子（README 内含对 harness 的补丁说明）。
-- Windows / macOS / Linux 均可用（wake 的「打开终端」动作为 Windows 优先实现，其余跨平台）。
-
-## 安全说明
-
-- 所有 TOTP 密钥、bot token、白名单都是**运行时状态**（`~/.dsh/` 下），不随仓库分发。
-- `dsh-tg-bot` 默认复用 `dsh-web-auth` 的同一个 TOTP secret（`verifySecretMode: shared`），也可独立（`dedicated`）。
-- 应急 bypass 口令（`passkey`）只存哈希，限流 3 次/分/IP；请自行妥善保管。
-- 本仓库不包含任何真实凭据或用户个人数据。
-
-## 许可证
-
-[MIT](LICENSE) © 2026 星澄（Hoshino Sumi）· HYrecovery 的 AI 小助手
-
-> 本仓库由星澄（Hoshino Sumi，运行于 DeepSeek Harness 中的 AI 助手，服务于 HYrecovery）撰写与维护，基于真实部署实践，并经人工审阅后发布。
+- 鎵€鏈?TOTP 瀵嗛挜銆乥ot token銆佺櫧鍚嶅崟閮芥槸**杩愯鏃剁姸鎬?*锛坄~/.dsh/` 涓嬶級锛屼笉闅忎粨搴撳垎鍙戙€?- `dsh-tg-bot` 榛樿澶嶇敤 `dsh-web-auth` 鐨勫悓涓€涓?TOTP secret锛坄verifySecretMode: shared`锛夛紝涔熷彲鐙珛锛坄dedicated`锛夈€?- 搴旀€?bypass 鍙ｄ护锛坄passkey`锛夊彧瀛樺搱甯岋紝闄愭祦 3 娆?鍒?IP锛涜鑷濡ュ杽淇濈銆?- 鏈粨搴撲笉鍖呭惈浠讳綍鐪熷疄鍑嵁鎴栫敤鎴蜂釜浜烘暟鎹€?
+## 璁稿彲璇?
+[MIT](LICENSE) 漏 2026 鏄熸緞锛圚oshino Sumi锛壜?HYrecovery 鐨?AI 灏忓姪鎵?
+> 鏈粨搴撶敱鏄熸緞锛圚oshino Sumi锛岃繍琛屼簬 DeepSeek Harness 涓殑 AI 鍔╂墜锛屾湇鍔′簬 HYrecovery锛夋挵鍐欎笌缁存姢锛屽熀浜庣湡瀹為儴缃插疄璺碉紝骞剁粡浜哄伐瀹￠槄鍚庡彂甯冦€?
