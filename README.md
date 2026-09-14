@@ -37,6 +37,12 @@ Telegram ──────────────► dsh-tg-bot ────�
 
 **一条方法论（比结论更重要）**：`curl` 探针（`/`→401/302、`/auth/login`→200）**不能证明前端可用**——这个坑当年就是被 curl 探针判成「已修复」的。正确验收 = 真实浏览器登录 + WebSocket 保持连接 + 真发一条消息并收到回复（判据建议读会话落盘记录里的 `assistant` 消息，而不是页面文本）。
 
+**版本与「降级」的真实含义（2026-09-14 补记）**：
+
+- 本仓库最后一次**完整**验证是在 **DSH 0.1.5-rc.1 / `dsh-*` 0.1.5-rc.2** 上（真实浏览器 + 真实 TOTP 登录 + 真发真收）；下文与各插件 README 里「兼容 0.1.0-rc.7 ~ 0.1.1-rc.2」之类的旧声明只作历史参考。
+- ⚠️ **降级 ≠ 安全**：当 webserver 补丁缺失（升级后被官方原版覆盖）时，插件会「路由注册但**没有请求守卫**」——**面板与 `/api/*` 在没有 TOTP 的情况下就能访问**（只剩核心的 Host/Origin 围栏与浏览器 cookie）。所以暴露到网络前，务必先 `node web-auth/apply-webserver-patch.mjs --check` 看到 `guard-passed marker: PRESENT`。
+- `web-auth/test/test-integration.mjs` 用的是 **mock ctx**，结构上**无法**发现 cordis 的 inject 违规或 `/api/*` 400 这类问题，**不能当作端到端验证**（它只证明算法与路由逻辑）。
+
 ## 作者
 
 **星澄（Hoshino Sumi）** —— HYrecovery 的 AI 小助手，运行于 DeepSeek Harness 之中。

@@ -371,7 +371,7 @@ export function apply(ctx, config = {}) {
 
   let token = readToken(cfg);
   // wake.json 默认落在 stateDir（与 token/state 同目录）；也可配置绝对路径
-  // 指向工作区内文件（如 .AGENT/03-工作区/wake/wake.json），便于脚本写入。
+  // 指向你自己的唤醒信号文件（例如 <你的工作区>/wake/wake.json），便于外部脚本写入。
   const WAKE_FILE = cfg.wakeFile || join(cfg.stateDir, "wake.json");
   let disposed = false;
   let pollRunning = false;
@@ -501,6 +501,25 @@ export function apply(ctx, config = {}) {
   function agentsSvc() {
     return ctx.get("agents");
   }
+  /**
+   * 兼容 harness 会话事件读取（2026-09-06 修：DSH 0.1.2-rc.1 重构 Session，
+   * 不再暴露 .events 数组 → 改为内部 log + snapshotEvents()；保留 .events 兜底以防回退旧版）。
+   */
+  function sessionEventsOf(session) {
+    if (!session) return [];
+    if (Array.isArray(session.events)) return session.events;
+    if (typeof session.snapshotEvents === "function") {
+      try {
+        return session.snapshotEvents();
+      } catch { /* 降级为空 */ }
+    }
+    return [];
+  }
+  function sessionLastTime(session) {
+    const events = sessionEventsOf(session);
+    const last = events.length > 0 ? events[events.length - 1] : null;
+    return last?.time ?? session?.header?.createdAt ?? 0;
+  }
   function liveAgents() {
     const out = [];
     const sessions = sessionsSvc();
@@ -513,7 +532,7 @@ export function apply(ctx, config = {}) {
         out.push({
           session,
           agent,
-          lastTime: session.events.at(-1)?.time ?? session.header?.createdAt ?? 0,
+          lastTime: sessionLastTime(session),
         });
       }
     }
@@ -1008,7 +1027,7 @@ export function apply(ctx, config = {}) {
 
   // ── progress reporting ──────────────────────────────────────────────────
   function lastAssistantText(session) {
-    const events = session?.events ?? [];
+    const events = sessionEventsOf(session);
     for (let i = events.length - 1; i >= 0; i -= 1) {
       const event = events[i];
       if (event.type === "turn/start") break;

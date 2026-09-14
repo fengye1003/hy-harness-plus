@@ -119,7 +119,7 @@ const PATCHES = [
     new: `\t\t/* v8 ignore next -- node:http always sets url on server requests */
 \t\tconst rawPath = new URL(req.url ?? "/", "http://x").pathname;
 \t\t// [no-token-auth] 2026-09-14 修复：读 webserver 守卫补丁打在 req 上的全局 symbol 标记，
-\t\t// **绝不**访问 ctx.webServer（cordis 对未 inject 的服务属性访问会 throw）。
+\t\t// 不直接读 ctx.webServer（dsh-client-connection 只 inject 了 credentials，访问会 throw；dsh-host-frontend-static 虽 inject 了 webServer，也统一走标记语义）（cordis 对未 inject 的服务属性访问会 throw）。
 \t\t// 守卫放行的浏览器可渲染 index；无守卫则回退核心 cookie 门禁（fail closed）。
 \t\tconst indexAuthorized = () => {
 \t\t\tif (req[Symbol.for("dsh.guardPassed")] === true) return true;
