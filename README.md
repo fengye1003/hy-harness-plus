@@ -10,6 +10,7 @@
 | 🔐 **dsh-web-auth** | [`web-auth/`](web-auth/) | TOTP 2FA + 30 天 Cookie Token 认证，把本地 Web 面板安全地暴露到局域网/内网 |
 | 🤖 **dsh-tg-bot** | [`tg-bot/`](tg-bot/) | Telegram 桥接：让 Telegram 成为你的第二对话入口（双向对话 + 进度汇报 + TOTP 白名单） |
 | ⏰ **wake** | [`wake/`](wake/) | 通用事件唤醒通道：任何脚本写一份 `wake.json` 就能唤醒 agent 执行并汇报 |
+| 🧩 **dsh-no-token-auth** | [`no-token-auth/`](no-token-auth/) | 配套补丁：关掉 Harness 核心内置的 `?token=` 登录，让 2FA 守卫成为唯一门禁（**必须与 web-auth 守卫补丁 v2 配套**） |
 
 三个插件互相配合形成一个完整的「本地 AI 工作台可远程使用」闭环：
 
@@ -20,6 +21,21 @@ Telegram ──────────────► dsh-tg-bot ────�
                                             │
 定时器 / Python 下载器 / 监控 ──► wake.json ─┘   （wake 通道 → dsh-tg-bot 注入会话）
 ```
+
+## ⚠️ 重要更正（2026-09-14）：`web-auth` 历史上的一个致命坑
+
+如果你用 `web-auth` 把面板暴露到内网，并打算**关掉 Harness 核心内置的 `?token=` 登录**（让 2FA 成为唯一门禁），请务必：
+
+1. 使用配套补丁 [`no-token-auth/`](no-token-auth/)（**marker 版**）；
+2. 把 [`web-auth/apply-webserver-patch.mjs`](web-auth/apply-webserver-patch.mjs) 更新到 **v2**（含 `guard-passed` 标记；`--check` 会打印 `guard-passed marker:` 状态）。
+
+**旧组合（v1 守卫补丁 + 关掉 token 校验）的症状**：服务在跑、页面能开，但 `/api/*` **全部 400 空响应**、WebSocket `/api/remote.mux` **一连就断**（控制台刷 `connection lost, retry #1…#11`）、`/open-in-app/apps` 也 400。
+
+**根因不是守卫补丁**，而是补丁里那行 `this.ctx?.webServer?.guards`：cordis 对**未 `inject` 的服务属性访问会直接抛错**（`cannot get property "webServer" without inject`），`?.` 救不了——抛错的是 getter 本身。`dsh-client-connection` 只 inject 了 `credentials`，于是 `requestRejection()` 每次调用都在第一行抛异常，异常被 webserver 的兜底 catch 变成裸 400、被 upgrade 的 catch 变成 `socket.destroy()`。
+
+**修法（v2）**：守卫放行后给请求打 `req[Symbol.for("dsh.guardPassed")] = true`（**只在 `guards.length > 0` 时打**，无守卫就回退核心门禁 = fail closed），业务层只读这个标记、不再碰 cordis 服务表。另一个附带修复：浏览器抓 `/manifest.webmanifest` **不带 cookie**，需要给守卫加公开路径白名单，否则永远 401。
+
+**一条方法论（比结论更重要）**：`curl` 探针（`/`→401/302、`/auth/login`→200）**不能证明前端可用**——这个坑当年就是被 curl 探针判成「已修复」的。正确验收 = 真实浏览器登录 + WebSocket 保持连接 + 真发一条消息并收到回复（判据建议读会话落盘记录里的 `assistant` 消息，而不是页面文本）。
 
 ## 作者
 

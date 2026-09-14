@@ -10,6 +10,17 @@
 - **UUID polyfill**：顺带修复局域网明文 HTTP 下 `crypto.randomUUID()` 崩溃（secure-context 专属 API，见 [deepseek-harness#514](https://github.com/deepseek-ai/deepseek-harness/issues/514)）。
 - **防御性加载（v3）**：`registerGuard` / `tapIndex` / `register` 全部先探测再调用，缺失只降级告警、**绝不 fatal**——harness 升级冲掉 webserver 补丁时认证暂时降级、但整个 harness 照常启动。
 
+## ⚠️ 重要（2026-09-14 更正）：打算「关掉核心内置 token 登录」的读者先读这里
+
+本插件只负责**守门**；Harness 核心自带的那套 `?token=` 登录仍在它后面。如果你要让 2FA 成为**唯一**门禁，必须：
+
+1. 使用配套补丁 [`../no-token-auth/`](../no-token-auth/)（**marker 版**）；
+2. 确保本目录的 `apply-webserver-patch.mjs` 是 **v2（含 `guard-passed` 标记）**——用 `--check` 看输出里 `guard-passed marker: PRESENT/MISSING`。
+
+致命的旧组合（v1 守卫补丁 + 关掉 token 校验）的症状是：**服务在跑、页面能开，但 `/api/*` 全部 400 空响应、WebSocket 一连就断**。那不是守卫的问题，而是补丁里去读「未注入的服务属性」触发了 cordis 硬报错（`cannot get property "webServer" without inject`，`?.` 也救不了）。完整根因与正确写法见 [`../no-token-auth/README.md`](../no-token-auth/README.md)。
+
+还有一条方法论：**curl 探针（`/`→401/302、`/auth/login`→200）不能证明前端可用**——这个坑正是被 curl 探针判成「已修复」的。验收请走真实浏览器登录 + 真发一条消息 + 读会话落盘记录。
+
 ## 认证流程
 
 ```

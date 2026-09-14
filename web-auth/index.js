@@ -37,6 +37,13 @@ const LOGIN_ENDPOINTS = new Set([
   "/auth/verify",
   "/auth/templogin/sumisecret/gettokenbypasskey",
 ]);
+// 公开静态资源：浏览器抓取 manifest **不带 cookie**（Chrome 默认 credential-less），
+// 被守卫拦成 401 只会刷控制台噪音并让 PWA 清单失效；这些文件无任何敏感信息。
+const PUBLIC_PATHS = new Set([
+  "/manifest.webmanifest",
+  "/favicon.ico",
+  "/favicon.svg",
+]);
 const FLUSH_INTERVAL_MS = 60_000;
 const CLEANUP_INTERVAL_MS = 3_600_000;
 const RATE_CLEANUP_MS = 600_000;
@@ -535,7 +542,7 @@ function applyImpl(ctx, config = {}) {
   const guard = {
     name: "web-auth",
     check: async (req, res, rawPath) => {
-      if (LOGIN_ENDPOINTS.has(rawPath)) return true;
+      if (LOGIN_ENDPOINTS.has(rawPath) || PUBLIC_PATHS.has(rawPath)) return true;
       const raw = parseCookies(req)[COOKIE_NAME];
       const id = state.findToken(raw);
       if (id !== null && state.touch(id, clientIp(req))) return true;
@@ -543,7 +550,7 @@ function applyImpl(ctx, config = {}) {
       return false;
     },
     checkUpgrade: async (req, socket, head, rawPath) => {
-      if (LOGIN_ENDPOINTS.has(rawPath)) return true;
+      if (LOGIN_ENDPOINTS.has(rawPath) || PUBLIC_PATHS.has(rawPath)) return true;
       const raw = parseCookies(req)[COOKIE_NAME];
       const id = state.findToken(raw);
       if (id !== null && state.touch(id, clientIp(req))) return true;
