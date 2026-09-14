@@ -64,6 +64,7 @@ const PATCHES = [
     new: `\t\turl.search = "";
 \t\turl.hash = "";
 \t\treturn url.href; // [no-token-auth] launch-token query disabled`,
+    marker: "[no-token-auth] launch-token query disabled",
     note: "authenticatedUrl strips ?token=",
   },
   {
@@ -109,6 +110,7 @@ const PATCHES = [
 \t\tconst url = new URL(req.url ?? "/", "http://dsh.invalid");
 \t\t// [no-token-auth] query-token launch auth disabled (dsh-web-auth owns the front door).
 \t\tif (this.isAuthenticated(req)) return true;`,
+    marker: "[no-token-auth] query-token launch auth disabled",
     note: "authorizeIndex ignores ?token=; cookie-only backstop",
   },
   {
@@ -126,6 +128,7 @@ const PATCHES = [
 \t\t\treturn typeof ctx.connection?.authorizeIndex === "function" ? ctx.connection.authorizeIndex(req, res) : true;
 \t\t};
 \t\tawait serveStatic(decodeURIComponent(rawPath), res, distRoot, distIndex, indexAuthorized, renderIndex);`,
+    marker: 'Symbol.for("dsh.guardPassed")',
     note: "index trusts active guard; core cookie fallback otherwise",
   },
   {
@@ -148,6 +151,7 @@ const PATCHES = [
 \t\tif (!isTrustedApiRequest(request, this.trustedHosts)) return 403;
 \t\treturn this.browserAuth.isAuthenticated(request) ? void 0 : 401;
 \t}`,
+    marker: 'if (request[Symbol.for("dsh.guardPassed")] === true) return void 0;',
     note: "RPC/API rejection defers to active guard",
   },
 ];
@@ -167,6 +171,8 @@ function checkSyntax(file) {
 
 function applyFile(path, patch) {
   const text = readFileSync(path, "utf8");
+  // idempotency: keyed on a STABLE marker per patch (never on the whole payload -- a mere comment edit used to be misread as a lost anchor)
+  if (patch.marker && text.includes(patch.marker)) return { path, status: "already" };
   if (!text.includes(patch.old)) {
     // 幂等：已打过的（new 已存在）算成功；否则报锚点丢失
     if (text.includes(patch.new)) return { path, status: "already" };
@@ -184,7 +190,7 @@ function revertFile(path, patch) {
   const backup = path + BACKUP_SUFFIX;
   if (!existsSync(backup)) return { path, status: "no-backup" };
   const text = readFileSync(path, "utf8");
-  if (!text.includes(patch.new)) return { path, status: "not-applied" };
+  if (!(patch.marker && text.includes(patch.marker)) && !text.includes(patch.new)) return { path, status: "not-applied" };
   writeFileSync(path, readFileSync(backup, "utf8"), "utf8");
   rmSync(backup, { force: true });
   checkSyntax(path);
@@ -209,7 +215,7 @@ for (const patch of PATCHES) {
     const text = readFileSync(path, "utf8");
     let status;
     if (mode === "--verify") {
-      status = text.includes(patch.new) ? "applied" : text.includes(patch.old) ? "clean" : "unknown";
+      status = (patch.marker && text.includes(patch.marker)) || text.includes(patch.new) ? "applied" : text.includes(patch.old) ? "clean" : "unknown";
     } else if (mode === "--apply") {
       const r = applyFile(path, patch);
       status = r.status;
