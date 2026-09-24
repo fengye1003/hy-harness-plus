@@ -20,7 +20,7 @@
 // log, and writes a recovery copy to `backupDir` (configured to the vault).
 import { createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { homedir } from "node:os";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 export const name = "web-auth";
@@ -252,6 +252,7 @@ class AuthState {
     this.secret = null;
     this.ttlMs = 30 * 86_400_000;
     this.lastFlush = 0;
+    this.loadedMtime = 0;
   }
 
   load() {
@@ -273,6 +274,7 @@ class AuthState {
       };
       this.save();
     }
+    this.loadedMtime = this.mtimeMs();
     this.secret = base32Decode(this.data.secret);
     return this;
   }
@@ -283,10 +285,53 @@ class AuthState {
     writeFileSync(tmp, JSON.stringify(this.data, null, 2), "utf8");
     renameSync(tmp, this.file);
     this.lastFlush = Date.now();
+    this.loadedMtime = this.mtimeMs();
   }
 
   maybeFlush() {
     if (Date.now() - this.lastFlush >= FLUSH_INTERVAL_MS) this.save();
+  }
+
+  /** state 文件的 mtime（拿不到就返回 0 = 不重读） */
+  mtimeMs() {
+    try {
+      return statSync(this.file).mtimeMs;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * 别的实例（热重载残留的旧守卫、应急通道、另一进程）写盘后，本实例的内存快照就过期了。
+   * 守卫链要求"所有守卫都放行"，于是任何一个过期守卫都会把**新签发**的 cookie 拒掉
+   * （实测症状：登录换到 cookie 仍然 401，直到重启 harness）。
+   * 这里在每次查找前按 mtime 判断是否需要重读，并把内存里较新的使用信息合并回去。
+   * 任何异常都吞掉 —— 退回原有行为（fail closed），绝不放宽鉴权。
+   */
+  maybeReload() {
+    try {
+      const m = this.mtimeMs();
+      if (!m || m === this.loadedMtime) return;
+      const fresh = JSON.parse(readFileSync(this.file, "utf8"));
+      if (!fresh || typeof fresh !== "object" || !fresh.tokens || typeof fresh.tokens !== "object") {
+        this.loadedMtime = m;
+        return;
+      }
+      const next = {};
+      for (const [id, t] of Object.entries(fresh.tokens)) {
+        if (!t || typeof t !== "object") continue;
+        const mine = this.data.tokens[id];
+        // 内存里可能有更新的使用痕迹（touch() 还没到 flush 窗口）→ 保留
+        if (mine && Number(mine.lastUsedAt || 0) > Number(t.lastUsedAt || 0)) t.lastUsedAt = mine.lastUsedAt;
+        if (mine && (t.lastIp === null || t.lastIp === undefined) && mine.lastIp) t.lastIp = mine.lastIp;
+        next[id] = t;
+      }
+      // 以盘为准（含 revoked/expired 的传播）。secret 等非 tokens 字段沿用本实例的。
+      this.data.tokens = next;
+      this.loadedMtime = m;
+    } catch {
+      /* 读盘失败：维持内存快照 */
+    }
   }
 
   createToken(note) {
@@ -308,6 +353,7 @@ class AuthState {
 
   /** Return the token id whose hash matches, or null. */
   findToken(raw) {
+    this.maybeReload();
     if (!raw) return null;
     const want = sha256(raw);
     for (const [id, token] of Object.entries(this.data.tokens)) {

@@ -44,6 +44,20 @@ Telegram ──────────────► dsh-tg-bot ────�
 - ⚠️ **降级 ≠ 安全**：当 webserver 补丁缺失（升级后被官方原版覆盖）时，插件会「路由注册但**没有请求守卫**」——**面板与 `/api/*` 在没有 TOTP 的情况下就能访问**（只剩核心的 Host/Origin 围栏与浏览器 cookie）。所以暴露到网络前，务必先 `node web-auth/apply-webserver-patch.mjs --check` 看到 `guard-passed marker: PRESENT`。
 - `web-auth/test/test-integration.mjs` 用的是 **mock ctx**，结构上**无法**发现 cordis 的 inject 违规或 `/api/*` 400 这类问题，**不能当作端到端验证**（它只证明算法与路由逻辑）。
 
+## ⚠️ 重要修复（2026-09-24）：热重载残留的旧守卫会拒掉**新签发**的 cookie
+
+**症状**：面板跑一阵子后，TOTP 登录/应急通道拿到了新 cookie，访问任何页面仍 **401**；重启 Harness 立刻恢复。
+
+**根因**：守卫链是「**所有**守卫都放行才放行」（`dsh-host-webserver/lib/index.js:253`）。而每改一次 `cordis.patch.yml` 都会热重载插件树、**再追加一个 web-auth 实例**（旧实例不被 dispose）；每个实例的 token 快照只在 `load()` 读一次、之后**只写不读** → 新 token 对旧守卫"不存在"，被一票否决。
+
+**修复**：`AuthState.findToken()` 查找前按状态文件 mtime 判断是否重读，合并别处写盘的 token（保留内存里较新的使用信息）。读盘失败即维持内存快照（**fail closed**）；以盘为准，所以**吊销/过期也会传播**。
+
+```bash
+node web-auth/test/test-guard-reload.mjs   # 11/11（补丁前 9/11，失败的两条正是本 bug）
+```
+
+**给插件作者的通用教训**：只要你的宿主环境是「热重载不 dispose 旧实例 + 同名钩子可重复注册」，任何**有状态**的钩子（守卫、轮询器、唯一写者）都要么做跨实例一致性，要么做单实例裁决——否则它会以"旧代码一票否决新数据"的形式坏掉，而且**症状出现在很远的地方**（这里是"登录后仍 401"）。
+
 ## 作者
 
 **星澄（Hoshino Sumi）** —— HYrecovery 的 AI 小助手，运行于 DeepSeek Harness 之中。
@@ -125,6 +139,7 @@ Telegram ──────────────► dsh-tg-bot ────�
 |---|---|
 | 插件没生效 | `cordis.patch.yml` 挂载后**热重载顶不上**（不 dispose 旧实例）→ 重启 harness。⚠️ **不要用 `?v=N`**（本 Harness 已实测：热重载不 dispose 旧实例，只会叠僵尸；`dsh-app-boot` 还会把 name 后缀编码成 `%3F` 导致冷启动 `ERR_MODULE_NOT_FOUND`） |
 | 插件降级告警（`registerGuard missing`） | harness 升级冲掉了 webserver 补丁 → 跑 `node web-auth/apply-webserver-patch.mjs --apply` 重打，重启 |
+| **登录换了新 cookie 仍 401** | 热重载残留的旧守卫不认新 token → **2026-09-24 已修复**（守卫会按 mtime 重读凭证表）；升级到本版即不再需要靠重启救。见上文「重要修复」 |
 | Telegram 一直 401 | bot token 错误 → 检查 `token.txt` / 配置 |
 | getUpdates 报 409 | 有多个轮询实例（热重载残留）→ 重启 harness；插件自带文件级轮询锁可自愈 |
 | 局域网 HTTP 访问页面白屏 | 老版本 harness 的 `crypto.randomUUID()` 在非 HTTPS 下崩溃 → 更新到含 UUID polyfill 的 web-auth 版本 |

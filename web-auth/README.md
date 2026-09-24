@@ -75,11 +75,40 @@ node web-auth/apply-webserver-patch.mjs --verify  # 语法检查 + 两处 hash �
 
 > 该补丁是 harness 的私有扩展点，属于对上游源码的小改动；本插件在无此钩子的版本上会降级运行（路由注册但无请求守卫）并打警告日志。
 
+## ⚠️ 重要（2026-09-24 修复）：热重载残留的旧守卫会拒掉**新签发**的 cookie
+
+**症状**：Web 面板跑了一段时间后，TOTP 登录（或应急通道）明明拿到了新 cookie，访问任何页面仍然 **401**；重启 Harness 后立即恢复正常。
+
+**根因**：webserver 的守卫链语义是「**所有**守卫都放行才放行」（`dsh-host-webserver/lib/index.js:253`）：
+
+```js
+for (const guard of this.guards) { if (await guard.check(req, res, rawPath) === false) return; }
+```
+
+而每改一次 `cordis.patch.yml` 都会热重载插件树、**再追加一个 web-auth 实例**，旧实例不会被 dispose。每个实例的 token 快照只在 `load()` 时读一次，之后**只写不读** —— 于是新签发的 token 对旧守卫而言"不存在"，请求被它一票否决。
+
+**修复（本版）**：`AuthState.findToken()` 在查找前按状态文件 mtime 判断是否需要重读，把别的实例写盘的 token 合并进内存快照（并保留内存里较新的 `lastUsedAt`/`lastIp`）。要点：
+
+- 读盘失败/文件消失 → 维持内存快照，**fail closed**，绝不放宽鉴权；
+- 以盘为准 → **吊销与过期同样会传播**（旧守卫不会继续放行已吊销的 token）；
+- 每次查找一次 `statSync`，未变更时零额外开销。
+
+**离线验收**（不需要重启 Harness 就能证明）：
+
+```bash
+node test/test-guard-reload.mjs   # 11/11
+```
+
+它用两个 mock 实例复现"僵尸守卫并存"：实例 A 先装载（快照过期）→ 实例 B 签发 cookie → 断言 **A 的守卫必须放行**、伪造/空 cookie 仍 401、B 吊销后 A 也必须拒。**补丁前 9/11（失败的两条正是本 bug），补丁后 11/11。**
+
+> 说明：这门修复让"多实例并存"不再致命，但**不改变**「改插件代码仍需重启 Harness」这一事实（热重载不 dispose 旧实例）。两者的病根相同，根治要么重启、要么把热重载语义做对。
+
 ## 测试
 
 ```bash
 node test/test-rfc6238.mjs     # TOTP 算法对照 RFC 6238 官方向量（6/6）
 node test/test-integration.mjs # 集成冒烟：mock ctx 跑 apply()，覆盖守卫/登录/bypass/吊销/升级拒绝
+node test/test-guard-reload.mjs # ★ 多实例守卫一致性：过期守卫必须接受别处签发的新 cookie（11/11）
 ```
 
 ## 配置项
