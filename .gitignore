@@ -9,6 +9,12 @@ wake/tasks.json
 wake/wake.json
 *.corrupt-*
 
+# bt-skin: 壁纸素材与运行时状态不进仓库（私人图片 / 第三方素材都不该提交）
+bt-skin/assets/
+bt-skin/runtime.json
+bt-skin/deploy-manifest.json
+bt-skin/diag.json
+
 # secrets
 *.secret
 totp-secret.txt

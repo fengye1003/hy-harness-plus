@@ -11,6 +11,7 @@
 | 🤖 **dsh-tg-bot** | [`tg-bot/`](tg-bot/) | Telegram 桥接：让 Telegram 成为你的第二对话入口（双向对话 + 进度汇报 + TOTP 白名单） |
 | ⏰ **wake** | [`wake/`](wake/) | 通用事件唤醒通道：任何脚本写一份 `wake.json` 就能唤醒 agent 执行并汇报 |
 | 🧩 **dsh-no-token-auth** | [`no-token-auth/`](no-token-auth/) | 配套补丁：关掉 Harness 核心内置的 `?token=` 登录，让 2FA 守卫成为唯一门禁（**必须与 web-auth 守卫补丁 v2 配套**） |
+| 🎨 **dsh-bt-skin** | [`bt-skin/`](bt-skin/) | 面板皮肤：背景图 + 毛玻璃 + 可调透明度遮罩，自带实时调参面板。**不改 Harness 一行源码**，只吃两个公开 API |
 
 三个插件互相配合形成一个完整的「本地 AI 工作台可远程使用」闭环：
 
@@ -122,12 +123,23 @@ Telegram ──────────────► dsh-tg-bot ────�
 
 | 现象 | 原因与解法 |
 |---|---|
-| 插件没生效 | `cordis.patch.yml` 挂载后未热重载/重启；`?v=N` 版本号没 +1 |
+| 插件没生效 | `cordis.patch.yml` 挂载后**热重载顶不上**（不 dispose 旧实例）→ 重启 harness。⚠️ **不要用 `?v=N`**（本 Harness 已实测：热重载不 dispose 旧实例，只会叠僵尸；`dsh-app-boot` 还会把 name 后缀编码成 `%3F` 导致冷启动 `ERR_MODULE_NOT_FOUND`） |
 | 插件降级告警（`registerGuard missing`） | harness 升级冲掉了 webserver 补丁 → 跑 `node web-auth/apply-webserver-patch.mjs --apply` 重打，重启 |
 | Telegram 一直 401 | bot token 错误 → 检查 `token.txt` / 配置 |
 | getUpdates 报 409 | 有多个轮询实例（热重载残留）→ 重启 harness；插件自带文件级轮询锁可自愈 |
 | 局域网 HTTP 访问页面白屏 | 老版本 harness 的 `crypto.randomUUID()` 在非 HTTPS 下崩溃 → 更新到含 UUID polyfill 的 web-auth 版本 |
 | 唤醒没到 | 无绑定会话时不会注入；检查 harness 是否运行、`wakeFile` 路径是否正确 |
+| 皮肤没生效 / 挂了新插件但页面没变 | **热重载不会 dispose 旧插件实例**：新实例被创建、但旧实例仍占着路由，`register` 撞重复路径直接失败（实测 `disposers: 0`）→ **必须重启 harness**。见 [`bt-skin/README.md`](bt-skin/README.md) 的「三条生效规则」 |
+
+## 皮肤插件（bt-skin）要点速览
+
+`bt-skin` 是本仓库里唯一**不改 Harness 源码**的插件，也是踩坑记录最值钱的一个：
+
+- **薄注入 + 动态资源**：`tapIndex` 只注入一个 `<link>` + 一个 `<script defer>`，样式/脚本由路由每次请求从磁盘读出 → **改皮肤只要浏览器刷新**，不用重启。
+- **改设计 token，不写类名**：DSH 前端类名是 CSS Module 的 hash（每次构建都变），但表面色全走 `--dsw-alias-bg-*` 一类 token，覆盖 token 才能"一次覆盖全部组件 + 升级不失效"。
+- **`runtime.json` 自愈**：针对"热重载不 dispose 旧实例"这个病根，把预设表/默认值落盘、handler 请求时重读，于是即使路由属于旧实例，读到的也是新数据 → 改图/改默认值免重启。
+- **遮罩浓度用数据定**：按图片实测亮度分档（亮图 0.3~0.5、暗图 0.1~0.2），并用上重下轻的渐变——壁纸顶部往往最亮，而标题栏也在顶部。
+- **`backdrop-filter: blur(0px)` ≠ 关闭**，必须写 `none`，否则仍会建立 containing block 让 fixed 浮层跑位。
 
 ## 升级维护（重要）
 

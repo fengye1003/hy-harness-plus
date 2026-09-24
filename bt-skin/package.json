@@ -1,0 +1,8 @@
+{
+  "name": "dsh-bt-skin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "宝塔面板风格皮肤 for the DeepSeek Harness web profile: background image + frosted-glass (backdrop-filter) + content transparency mask, with a live 🎨 tuner. Zero-dependency, injects only via webServer.register / webServer.tapIndex.",
+  "license": "MIT"
+}

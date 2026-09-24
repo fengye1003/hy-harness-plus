@@ -1,0 +1,283 @@
+/* ============================================================================
+ * dsh-bt-skin · 宝塔面板风格皮肤（背景图 + 毛玻璃遮罩 + 透明度遮罩）
+ * ----------------------------------------------------------------------------
+ * 图层自下而上：
+ *   0. 画布底色  html { background-color: var(--bt-canvas) }
+ *   1. 背景图    #dsh-bt-wall    （opacity: var(--bt-bg-opacity)）
+ *   2. 遮罩      #dsh-bt-veil    （rgba，浓度 var(--bt-veil-alpha)）
+ *   3. 内容区    DSH 本体 —— 面板全部改为半透明 + backdrop-filter 毛玻璃
+ *                （不透明度 = 宝塔面板的 content_opacity）
+ *
+ * 所有可调参数都收敛到 <html> 上的 CSS 变量，skin.js 通过内联样式覆盖它们，
+ * 所以这份 CSS 保持"纯静态、可缓存"，不需要为调参重新部署。
+ * ========================================================================== */
+
+/* ── 0. 参数与画布底色 ─────────────────────────────────────────────────── */
+html {
+  /* 背景图：skin.js 启动后会用当前预设覆盖它。
+     这里的默认值是**内置渐变**（不是图片文件），保证"零素材 + skin.js 未执行"时
+     首帧也不会去请求一个不存在的图片。 */
+  --bt-bg-url: linear-gradient(160deg, #0b1220 0%, #16233c 45%, #24365c 100%);
+  /* 背景图透明度 0~1 */
+  --bt-bg-opacity: 1;
+  /* ── 暗色不透明度遮罩 ──
+     三段式而不是一个平值：壁纸往往「上亮下暗」，而顶部正好是 DSH 的标题栏，
+     所以顶部压得更重。三个值都由 skin.js 按 --bt-veil-alpha 自动派生
+     （顶 = ×1.25，底 = ×0.85）。这里给的是内置渐变那一档。 */
+  --bt-veil-alpha: 0.08;
+  --bt-veil-top: 0.1;
+  --bt-veil-bottom: 0.07;
+  /* 内容区不透明度（宝塔 content_opacity=70 对应 --bt-p1:70%） */
+  --bt-p1: 70%;
+  --bt-p2: 78%;
+  --bt-p3: 86%;
+  /* 毛玻璃模糊与饱和度 */
+  /* 毛玻璃：用户 2026-09-24 要求「质感调低到 5~10%」→ 量程 0~40px 下取 3px（7.5%），
+     饱和度增益也从 150% 压到 110%。改这里只影响"首帧"，运行时以 skin.js 的 TUNING 为准。 */
+  --bt-blur: 3px;
+  --bt-saturate: 110%;
+  /* 真正作用到三栏的 filter 值。注意：blur(0) 仍会建立 containing block，
+     所以"关掉模糊"必须写成 none（skin.js 自动切换），不能用 blur(0px)。 */
+  --bt-filter: blur(3px) saturate(110%);
+
+  /* 画布底色 + 遮罩色（亮色主题） */
+  --bt-canvas: #e9edf5;
+  --bt-veil-rgb: 12 14 24;
+
+  background-color: var(--bt-canvas) !important;
+}
+
+/* 暗色主题下的画布与遮罩 */
+html:has(body[data-ds-dark-theme]) {
+  --bt-canvas: #08090d;
+  --bt-veil-rgb: 3 4 8;
+}
+
+/* ── 1. 背景图 ─────────────────────────────────────────────────────────── */
+#dsh-bt-wall {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: var(--bt-bg-url);
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  opacity: var(--bt-bg-opacity);
+}
+
+/* ── 2. 暗色不透明度遮罩（上重下轻的竖向渐变） ───────────────────────────── */
+#dsh-bt-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(
+    180deg,
+    rgb(var(--bt-veil-rgb) / var(--bt-veil-top)) 0%,
+    rgb(var(--bt-veil-rgb) / var(--bt-veil-alpha)) 45%,
+    rgb(var(--bt-veil-rgb) / var(--bt-veil-bottom)) 100%
+  );
+}
+
+/* ── 3. 外壳透明化：让背景从内容缝隙里透出来 ───────────────────────────── */
+html body {
+  background-color: transparent !important;
+}
+html body [class*="_frame"] {
+  background-color: transparent !important;
+}
+
+/* ── 4. 毛玻璃：三栏都加 backdrop-filter ──────────────────────────────── */
+html body [class*="_sidebarCol"],
+html body [class*="_centerCol"],
+html body [class*="_rightbarCol"] {
+  -webkit-backdrop-filter: var(--bt-filter, blur(3px) saturate(110%));
+  backdrop-filter: var(--bt-filter, blur(3px) saturate(110%));
+}
+
+/* ── 5. 内容区透明度遮罩：把 DSH 的"表面色"token 全部换成带 alpha 的玻璃色 ─
+ *    只改"表面"类 token；文字色 / 状态色 / 弹窗蒙层一律不动，保证可读性。
+ *    亮色系（玻璃 = 白系）                                                    */
+html body {
+  --bt-g-base: 255 255 255;
+  --bt-g-soft: 250 251 252;
+  --bt-g-mod: 244 246 249;
+  --bt-g-deep: 232 236 243;
+
+  --dsw-alias-bg-base: rgb(var(--bt-g-base) / var(--bt-p1)) !important;
+  --dsw-alias-bg-layer-1: rgb(var(--bt-g-base) / var(--bt-p1)) !important;
+  --dsw-alias-bg-layer-2: rgb(var(--bt-g-base) / var(--bt-p2)) !important;
+  --dsw-alias-bg-layer-3: rgb(var(--bt-g-base) / var(--bt-p3)) !important;
+  --dsw-alias-bg-overlay: rgb(var(--bt-g-deep) / var(--bt-p1)) !important;
+  --dsw-alias-bg-module-platform: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-alias-bg-multi-select: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-specific-sidebar-fill: rgb(var(--bt-g-soft) / var(--bt-p1)) !important;
+  --dsw-specific-input-major: rgb(var(--bt-g-base) / var(--bt-p3)) !important;
+  --dsw-specific-tip: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-specific-selector: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-alias-markdown-code-block: rgb(var(--bt-g-soft) / var(--bt-p1)) !important;
+  --dsw-alias-markdown-code-block-banner: rgb(var(--bt-g-soft) / var(--bt-p2)) !important;
+  --dsw-alias-markdown-inline-code: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-alias-markdown-tag: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-alias-markdown-placeholder: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-alias-markdown-citation: rgb(var(--bt-g-deep) / var(--bt-p1)) !important;
+  --dsw-specific-sidebar-nav-item-active: rgb(var(--bt-g-deep) / var(--bt-p1)) !important;
+  --dsw-specific-sidebar-nav-item-hover: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+}
+
+/* 暗色系（玻璃 = 深灰系） */
+html body[data-ds-dark-theme] {
+  --bt-g-base: 21 21 23;
+  --bt-g-soft: 28 28 30;
+  --bt-g-mod: 45 46 50;
+  --bt-g-deep: 78 80 86;
+
+  --dsw-alias-bg-base: rgb(var(--bt-g-base) / var(--bt-p1)) !important;
+  --dsw-alias-bg-layer-1: rgb(var(--bt-g-soft) / var(--bt-p1)) !important;
+  --dsw-alias-bg-layer-2: rgb(var(--bt-g-base) / var(--bt-p2)) !important;
+  --dsw-alias-bg-layer-3: rgb(var(--bt-g-mod) / var(--bt-p3)) !important;
+  --dsw-alias-bg-overlay: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-alias-bg-module-platform: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-alias-bg-multi-select: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-specific-sidebar-fill: rgb(var(--bt-g-soft) / var(--bt-p1)) !important;
+  --dsw-specific-input-major: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-specific-tip: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-specific-selector: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-alias-markdown-code-block: rgb(var(--bt-g-base) / var(--bt-p1)) !important;
+  --dsw-alias-markdown-code-block-banner: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-alias-markdown-inline-code: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-alias-markdown-tag: rgb(var(--bt-g-mod) / var(--bt-p2)) !important;
+  --dsw-alias-markdown-placeholder: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-alias-markdown-citation: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-specific-sidebar-nav-item-active: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+  --dsw-specific-sidebar-nav-item-hover: rgb(var(--bt-g-mod) / var(--bt-p1)) !important;
+}
+
+/* ── 6. 调参面板（🎨 悬浮按钮） ───────────────────────────────────────── */
+#dsh-bt-tuner {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2147483000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary, #111);
+}
+#dsh-bt-tuner-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0.5px solid var(--dsw-alias-border-l4, rgba(0, 0, 0, 0.16));
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.42;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  background: rgb(var(--bt-g-base, 255 255 255) / 88%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  display: grid;
+  place-items: center;
+}
+#dsh-bt-tuner-btn:hover {
+  opacity: 1;
+  transform: scale(1.06);
+}
+#dsh-bt-tuner[data-open="1"] #dsh-bt-tuner-btn {
+  opacity: 1;
+}
+#dsh-bt-tuner-panel {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 44px;
+  width: 236px;
+  padding: 12px 14px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l4, rgba(0, 0, 0, 0.16));
+  border-radius: 14px;
+  background: rgb(var(--bt-g-base, 255 255 255) / 94%);
+  -webkit-backdrop-filter: blur(8px) saturate(115%);
+  backdrop-filter: blur(8px) saturate(115%);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.28);
+}
+#dsh-bt-tuner[data-open="1"] #dsh-bt-tuner-panel {
+  display: block;
+}
+#dsh-bt-tuner .bt-head {
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: var(--dsw-alias-label-primary, #111);
+}
+#dsh-bt-tuner .bt-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+#dsh-bt-tuner .bt-preset {
+  border: 0.5px solid var(--dsw-alias-border-l4, rgba(0, 0, 0, 0.16));
+  border-radius: 8px;
+  padding: 5px 4px;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  color: var(--dsw-alias-label-secondary, #444);
+  background: transparent;
+}
+#dsh-bt-tuner .bt-preset[data-active="1"] {
+  border-color: var(--dsw-alias-state-business-primary, #4176e6);
+  color: var(--dsw-alias-state-business-primary, #4176e6);
+  font-weight: 600;
+}
+#dsh-bt-tuner .bt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 7px 0;
+  color: var(--dsw-alias-label-secondary, #444);
+}
+#dsh-bt-tuner .bt-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  margin: 0 4px;
+  accent-color: var(--dsw-alias-state-business-primary, #4176e6);
+}
+#dsh-bt-tuner .bt-v {
+  width: 30px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-tertiary, #666);
+}
+#dsh-bt-tuner .bt-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+}
+#dsh-bt-tuner .bt-actions button {
+  flex: 1;
+  padding: 5px 6px;
+  border: 0.5px solid var(--dsw-alias-border-l4, rgba(0, 0, 0, 0.16));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #444);
+  cursor: pointer;
+  font: inherit;
+}
+#dsh-bt-tuner .bt-actions button:hover {
+  color: var(--dsw-alias-label-primary, #111);
+}
+#dsh-bt-tuner[data-hidden="1"] {
+  display: none;
+}
+
+/* 窄屏下抬高一截，避免压住输入区 */
+@media (max-width: 720px) {
+  #dsh-bt-tuner {
+    bottom: 84px;
+  }
+}

@@ -1,0 +1,31 @@
+# bt-skin 挂载示例（追加到 <profile>/cordis.patch.yml）
+#
+# 安装：把 bt-skin/ 拷到 <profile>/bt-skin/，再把下面这段追加进 cordis.patch.yml，
+#       然后 **重启 Harness**（热重载挂不上新插件，详见 README「三条生效规则」）。
+
+- insert:
+    - id: bt-skin
+      name: ./bt-skin/index.js
+      config:
+        enabled: true
+        routePrefix: /bt-skin
+        showTuner: true
+        # 可选：把自检信息写到文件，排障时一眼看到实例/注册状态/预设
+        # statusFile: /tmp/bt-skin-diag.json
+
+        # 壁纸表。file 相对 assetsDir（默认 <插件>/assets）。
+        # id 只允许 [A-Za-z0-9_-]；文件名会被白名单 + 路径穿越校验。
+        # 一张图都不放也能跑：皮肤会落到内置渐变预设。
+        presets:
+          - { id: aurora, label: 极光, file: aurora.jpg }
+          - { id: city, label: 城市夜景, file: city.webp }
+
+        # 默认参数：
+        #   bg      背景图不透明度 0~1
+        #   content 内容区不透明度 %（宝塔面板的 content_opacity 默认 70）
+        #   veil    暗色遮罩浓度 0~1（亮壁纸给 0.3~0.5，暗壁纸 0.1~0.2）
+        #   blur    毛玻璃模糊 px（建议 2~4；0 表示完全关闭）
+        defaults: { preset: aurora, bg: 0.9, content: 70, veil: 0.3, blur: 3 }
+
+        # 每张图的"出厂调档"在 skin/skin.js 的 TUNING 表里，切图时自动套用；
+        # 改那张表只需要浏览器刷新，不用重启。
