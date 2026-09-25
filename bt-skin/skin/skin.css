@@ -53,7 +53,10 @@ html:has(body[data-ds-dark-theme]) {
   --bt-veil-rgb: 3 4 8;
 }
 
-/* ── 1. 背景图 ─────────────────────────────────────────────────────────── */
+/* ── 1. 背景图 ─────────────────────────────────────────────────────────────
+   同一张图有两条渲染路径：
+     · CSS background-image（首帧 / skin.js 未执行 / 内置渐变预设）
+     · 内部的 <img>（主路径；强制深色扩展会保留真实图片，见 skin.js 的注释）   */
 #dsh-bt-wall {
   position: fixed;
   inset: 0;
@@ -64,6 +67,16 @@ html:has(body[data-ds-dark-theme]) {
   background-position: center center;
   background-size: cover;
   opacity: var(--bt-bg-opacity);
+}
+#dsh-bt-wall-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  border: 0;
+  /* 别让扩展把它"变暗"当作可接受行为：明确声明它就是内容图片 */
+  filter: none;
 }
 
 /* ── 2. 暗色不透明度遮罩（上重下轻的竖向渐变） ───────────────────────────── */
@@ -209,6 +222,17 @@ html body[data-ds-dark-theme] {
   font-size: 12px;
   margin-bottom: 8px;
   color: var(--dsw-alias-label-primary, #111);
+}
+/* 强制深色扩展的告警（Dark Reader 等）—— 不给用户留"是不是皮肤坏了"的疑惑 */
+#dsh-bt-tuner .bt-tip {
+  margin: -2px 0 10px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--dsw-alias-state-warn-label, #8a5a00);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #f59e0b) 16%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary, #f59e0b) 45%, transparent);
 }
 #dsh-bt-tuner .bt-presets {
   display: grid;

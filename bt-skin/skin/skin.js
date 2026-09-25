@@ -138,6 +138,7 @@
       var p1 = Math.round(s.content);
       var direct = PRESET_URLS[s.preset];
       r.style.setProperty("--bt-bg-url", direct || 'url("' + BASE + "/bg/" + s.preset + '")');
+      setWallImage(direct ? "" : BASE + "/bg/" + s.preset);
       r.style.setProperty("--bt-bg-opacity", String(s.bg));
       r.style.setProperty("--bt-veil-alpha", String(s.veil));
       // 遮罩做成上重下轻：实测用户那张图"上亮下暗"，而顶部正好压着 DSH 的标题栏
@@ -153,17 +154,59 @@
     }
 
     /* ── 图层 DOM ─────────────────────────────────────────────────────── */
+    // 壁纸用真正的 <img>，不是 CSS background-image —— 这是为了"强制深色"类浏览器扩展。
+    // 实测（2026-09-25 用户报障）：装了 Dark Reader 的浏览器里背景图不显示，关掉就正常。
+    // 原因：这类扩展会改写页面配色（滤镜模式甚至对整页 invert 后反色），
+    // 它们对**真实图片元素**（img/video）会"反色回来"，但 CSS 背景图往往被一起压暗/反色，
+    // 在深色遮罩下就基本看不见了。换成 <img> 后壁纸能活下来。
     function mountLayers() {
       if (!document.body) return;
       if (document.getElementById("dsh-bt-wall")) return;
       var wall = document.createElement("div");
       wall.id = "dsh-bt-wall";
       wall.setAttribute("aria-hidden", "true");
+      var img = document.createElement("img");
+      img.id = "dsh-bt-wall-img";
+      img.alt = "";
+      img.decoding = "async";
+      wall.appendChild(img);
       var veil = document.createElement("div");
       veil.id = "dsh-bt-veil";
       veil.setAttribute("aria-hidden", "true");
       document.body.insertBefore(veil, document.body.firstChild);
       document.body.insertBefore(wall, veil);
+    }
+
+    /** 同步壁纸 <img>：传空串 = 用 CSS 渐变（内置预设），此时隐藏 img */
+    function setWallImage(src) {
+      var img = document.getElementById("dsh-bt-wall-img");
+      if (!img) return;
+      if (!src) {
+        img.removeAttribute("src");
+        img.style.display = "none";
+        return;
+      }
+      img.style.display = "";
+      if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+    }
+
+    /** 检测"强制深色"类扩展（Dark Reader 等）：它们会覆写配色，壁纸可能异常 */
+    function forcedDarkName() {
+      try {
+        var el = document.documentElement;
+        if (el.hasAttribute("data-darkreader-scheme") || el.hasAttribute("data-darkreader-mode")) return "Dark Reader";
+        var st = document.querySelector('style.darkreader, style[id^="dark-reader"], style[class*="darkreader"]');
+        if (st) return "Dark Reader";
+        if (el.classList.contains("darkreader") || document.body?.classList?.contains("darkreader")) return "Dark Reader";
+        // 通用兜底：有些扩展只是往 html 上打自己的属性
+        for (var i = 0; i < el.attributes.length; i += 1) {
+          var n = el.attributes[i].name;
+          if (/darkreader|force-?dark/i.test(n)) return "强制深色扩展";
+        }
+      } catch (e) {
+        /* ignore */
+      }
+      return "";
     }
 
     /* ── 调参面板 ─────────────────────────────────────────────────────── */
@@ -212,6 +255,15 @@
       head.className = "bt-head";
       head.textContent = "界面皮肤 · 宝塔风";
       panel.appendChild(head);
+
+      // 检测到强制深色扩展就直说 —— 否则用户会以为是皮肤坏了（2026-09-25 真实踩过）
+      var forced = forcedDarkName();
+      if (forced) {
+        var tip = document.createElement("div");
+        tip.className = "bt-tip";
+        tip.textContent = "⚠️ 检测到「" + forced + "」在改写页面配色：壁纸可能变暗或不显示。建议对本站关闭该扩展。";
+        panel.appendChild(tip);
+      }
 
       var presetBox = document.createElement("div");
       presetBox.className = "bt-presets";

@@ -190,6 +190,23 @@ html              background-color: 画布底色
 
 ---
 
+## ⚠️ 装了「强制深色」扩展（Dark Reader 等）看不见壁纸？
+
+**症状**：同一个面板，A 浏览器正常显示壁纸，B 浏览器什么都没有 —— 而 B 装了 Dark Reader（或同类"强制全局深色"扩展）。关掉扩展立刻恢复。
+
+**机制**：这类扩展会**改写页面配色**。它的滤镜模式等于对整页做一次 `invert(1) hue-rotate(180deg)`，再把**真实图片元素**（`img/video/canvas`）反色回来 —— 而 **CSS `background-image` 不在它的"还原"名单里**。于是亮色壁纸被反成暗色，再叠上暗遮罩就基本看不见了。
+（注意区分：**系统深色**只会向网站发送 `prefers-color-scheme` 建议，**不改写页面配色**，所以它不影响。）
+
+**本插件的处理**：
+
+1. **壁纸用真正的 `<img>` 元素**（`#dsh-bt-wall` 内），CSS `background-image` 只作首帧/内置渐变预设的兜底 —— 扩展会保留真实图片，壁纸能活下来。
+2. **🎨 面板会检测并提示**：命中 `data-darkreader-*`、`style.darkreader` 或 `html` 上形如 `*darkreader*|force-dark*` 的属性时，面板顶部显示一行黄色提醒，建议对本站关闭该扩展。
+3. 想更彻底：把面板加进该扩展的**站点白名单**（Dark Reader：站点列表 → 添加本站 → 设为"不应用"）。
+
+> 如果你在自己写的插件里也画全屏背景图，建议照抄这条：**能被"反色扩展"正确还原的只有真实 `<img>`，不是 CSS 背景图。**
+
+---
+
 ## 卸载
 
 `cordis.patch.yml` 里删掉 `bt-skin` 段 → 重启 Harness。浏览器里残留的 `localStorage` 键是 `dsh-bt-skin:v2`，可随手清掉。
